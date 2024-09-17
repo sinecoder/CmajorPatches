@@ -1,0 +1,194 @@
+/* ------------------------------------------------------------
+name: "faust_adsr"
+Code generated with Faust 2.75.2 (https://faust.grame.fr)
+Compilation options: -a /usr/local/share/faust/cmajor/minimal.cmajor -lang cmajor -ec -ct 1 -cn faust_adsr -es 1 -mcd 16 -mdd 1024 -mdy 33 -single -ftz 0
+------------------------------------------------------------ */
+/************************************************************************ 
+ IMPORTANT NOTE : this file contains two clearly delimited sections :
+ the ARCHITECTURE section (in two parts) and the USER section. Each section
+ is governed by its own copyright and license. Please check individually
+ each section for license and copyright information.
+ *************************************************************************/
+
+/******************* BEGIN minimal.cmajor ****************/
+
+/************************************************************************
+ FAUST Architecture File
+ Copyright (C) 2003-2019 GRAME, Centre National de Creation Musicale
+ ---------------------------------------------------------------------
+ This Architecture section is free software; you can redistribute it
+ and/or modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 3 of
+ the License, or (at your option) any later version.
+ 
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program; If not, see <http://www.gnu.org/licenses/>.
+ 
+ EXCEPTION : As a special exception, you may create a larger work
+ that contains this FAUST architecture section and distribute
+ that work under terms of your choice, so long as this FAUST
+ architecture section is not modified.
+ 
+ ************************************************************************
+ ************************************************************************/
+ 
+//----------------------------------------------------------------------------
+//  FAUST generated signal processor
+//----------------------------------------------------------------------------
+namespace faust 
+{
+	processor faust_adsr
+	{
+		input event (std::notes::NoteOn, std::notes::NoteOff) eventIn;
+
+		input event float32 attack_faust;
+		input event float32 decay_faust;
+		// input event float32 gate_faust;
+		input event float32 sustain_faust;
+		input event float32 release_faust;
+		
+		output stream float32 output0;
+		float32 fButton0;
+		float32 fSlow0;
+		float32[2] fVec0;
+		int32 iSlow1;
+		int32[2] iRec0;
+		float32 fHslider0;
+		int32 fSampleRate;
+		float32 fConst0;
+		float32 fSlow2;
+		float32[2] fRec1;
+		float32 fHslider1;
+		float32 fSlow3;
+		float32 fSlow4;
+		float32 fHslider2;
+		float32 fHslider3;
+		float32 fSlow5;
+		float32 fSlow6;
+		bool fUpdated;
+		
+		
+		// attack [init = 0.01f, min = 0.0f, max = 1.0f, step = 0.001f] 
+		event attack_faust (float32 val) { fUpdated ||= (fHslider1 != val); fHslider1 = val; } 
+		// decay [init = 0.2f, min = 0.0f, max = 1.0f, step = 0.001f] 
+		event decay_faust (float32 val) { fUpdated ||= (fHslider2 != val); fHslider2 = val; } 
+		// gate 
+		// event gate_faust (float32 val) { fUpdated ||= (fButton0 != val); fButton0 = val; } 
+		// release [init = 0.5f, min = 0.0f, max = 5.0f, step = 0.001f] 
+		event release_faust (float32 val) { fUpdated ||= (fHslider0 != val); fHslider0 = val; } 
+		// sustain [init = 0.8f, min = 0.0f, max = 1.0f, step = 0.001f] 
+		event sustain_faust (float32 val) { fUpdated ||= (fHslider3 != val); fHslider3 = val; } 
+		
+		event eventIn(std::notes::NoteOn val)
+		{
+			fUpdated = true;
+			fButton0 = 1.0f;
+		}
+
+		event eventIn(std::notes::NoteOff val)
+		{
+			fUpdated = true;
+			fButton0 = 0.0f;
+		}
+
+
+
+		float32 copysign(float32 x, float32 y) { return abs(x) * ((y < 0.0f) ? -1.0f : 1.0f); }
+		float32 round(float32 x) { return float32(roundToInt(x)); }
+		
+		int getNumInputs() { return 0; }
+		
+		int getNumOuputs() { return 1; }
+		
+		void classInit (int sample_rate)
+		{
+		}
+		
+		void instanceConstants (int sample_rate)
+		{
+			fSampleRate = sample_rate;
+			fConst0 = min (1.92e+05f, max (1.0f, float32 (fSampleRate)));
+		}
+		
+		void instanceResetUserInterface()
+		{
+			fUpdated = true;
+			fButton0 = 0.0f;
+			fHslider0 = 0.5f;
+			fHslider1 = 0.01f;
+			fHslider2 = 0.2f;
+			fHslider3 = 0.8f;
+		}
+		
+		void instanceClear()
+		{
+			for (int32 l0 = 0; l0 < 2; l0 = l0 + 1) {
+				fVec0.at (l0) = 0.0f;
+			}
+			for (int32 l1 = 0; l1 < 2; l1 = l1 + 1) {
+				iRec0.at (l1) = 0;
+			}
+			for (int32 l2 = 0; l2 < 2; l2 = l2 + 1) {
+				fRec1.at (l2) = 0.0f;
+			}
+		}
+		
+		void init()
+		{
+			let sample_rate = int(processor.frequency);
+			// classInit is not called here since the tables are actually not shared between instances
+			instanceInit (sample_rate);
+		}
+		
+		void instanceInit (int sample_rate)
+		{
+			// classInit has to be called for each instance since the tables are actually not shared between instances
+			classInit (sample_rate);
+			instanceConstants (sample_rate);
+			instanceResetUserInterface();
+			instanceClear();
+		}
+		
+		
+		void control()
+		{
+			fSlow0 = fButton0;
+			iSlow1 = int32 (fSlow0 == 0.0f);
+			fSlow2 = 1.0f / max (1.0f, fConst0 * fHslider0);
+			fSlow3 = max (1.0f, fConst0 * fHslider1);
+			fSlow4 = 1.0f / fSlow3;
+			fSlow5 = fHslider3;
+			fSlow6 = (1.0f - fSlow5) / max (1.0f, fConst0 * fHslider2);
+		}
+
+		void main()
+		{
+			// DSP loop running forever...
+			loop
+			{
+				if (fUpdated) { fUpdated = false; control(); }
+				
+				// Computes one sample
+				fVec0[0] = fSlow0;
+				iRec0[0] = iSlow1 * (iRec0[1] + 1);
+				fRec1[0] = fSlow0 + fRec1[1] * float32 (int32 (fVec0[1] >= fSlow0));
+				output0 <- max (0.0f, min (fSlow4 * fRec1[0], max (fSlow6 * (fSlow3 - fRec1[0]) + 1.0f, fSlow5)) * (1.0f - fSlow2 * float32 (iRec0[0])));
+				fVec0[1] = fVec0[0];
+				iRec0[1] = iRec0[0];
+				fRec1[1] = fRec1[0];
+				
+				// Moves all streams forward by one 'tick'
+				advance();
+			}
+		}
+	}
+}
+
+// Nothing more for now
+
+/******************** END minimal.cmajor ****************/

@@ -1,0 +1,12 @@
+{
+	"CmajorVersion": 1,
+	"ID": "grame.cmajor.faust_adsr",
+	"version": "1.0",
+	"name": "faust_adsr",
+	"description": "Cmajor example",
+	"category": "synth",
+	"manufacturer": "GRAME",
+	"website": "https://faust.grame.fr",
+	"isInstrument": false,
+	"source": "faust_adsr.cmajor"
+}

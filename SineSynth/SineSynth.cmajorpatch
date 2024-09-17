@@ -1,0 +1,14 @@
+{
+    "CmajorVersion": 1,
+    "ID": "com.SineCoder.ssf1",
+    "version": "1.0",
+    "name": "SineSynth",
+    "description": "SineSynth",
+    "category": "generator",
+    "manufacturer": "SineCoder",
+    "isInstrument": true,
+    "source": [
+        "SineSynth.cmajor",
+        "faust_adsr/faust_adsr.cmajor"
+    ]
+}

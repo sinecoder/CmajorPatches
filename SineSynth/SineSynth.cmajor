@@ -1,0 +1,73 @@
+graph SineSynth  [[main]]
+{
+    input event float32 attack [[ name: "attack", group: "/v:faust_adsr/attack", min: 0.0f, max: 1.0f, init: 0.01f, step: 0.001f ]];
+    input event float32 decay [[ name: "decay", group: "/v:faust_adsr/decay", min: 0.0f, max: 1.0f, init: 0.2f, step: 0.001f ]];
+    input event float32 sustain [[ name: "sustain", group: "/v:faust_adsr/sustain", min: 0.0f, max: 1.0f, init: 0.8f, step: 0.001f ]];
+    input event float32 release [[ name: "release", group: "/v:faust_adsr/release", min: 0.0f, max: 5.0f, init: 0.5f, step: 0.001f ]];
+    	
+
+    input event std::midi::Message midiIn;
+    output stream float out;
+
+    let voiceCount = 16;
+
+    node
+    {
+        voices = Voice[voiceCount];
+        voiceAllocator = std::voices::VoiceAllocator (voiceCount);
+    }
+
+    connection
+    { 
+        midiIn -> std::midi::MPEConverter -> voiceAllocator;
+        
+        voiceAllocator.voiceEventOut -> voices.eventIn;
+        
+        voices -> out;
+
+        attack -> voices.attack;
+        decay -> voices.decay;
+        sustain -> voices.sustain;
+        release -> voices.release;
+    }
+}
+
+graph Voice
+{
+    input event float32 attack;
+    input event float32 decay; 
+    input event float32 sustain;
+    input event float32 release;
+
+    input event (std::notes::NoteOn, std::notes::NoteOff) eventIn;
+    output stream float out;
+
+    node
+    {
+        noteToFrequency = NoteToFrequency; 
+        oscillator = std::oscillators::Sine (float32);
+        faust = faust::faust_adsr;
+    }
+
+    connection
+    {
+        eventIn -> faust.eventIn;
+        attack -> faust.attack_faust;
+        decay -> faust.decay_faust;
+        sustain -> faust.sustain_faust;
+        release -> faust.release_faust;
+
+        eventIn -> noteToFrequency -> oscillator.frequencyIn;
+        (faust.output0 * oscillator.out) -> out;
+    }
+} 
+processor NoteToFrequency
+{
+    input event std::notes::NoteOn eventIn;
+    output event float32 frequencyOut;
+
+    event eventIn (std::notes::NoteOn e)
+    {
+        frequencyOut <- std::notes::noteToFrequency (e.pitch);
+    }
+}
